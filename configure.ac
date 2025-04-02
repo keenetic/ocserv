@@ -111,6 +111,8 @@ fi
 
 AM_CONDITIONAL(LOCAL_PROTOBUF_C, test "x$with_local_protobuf_c" != xno)
 
+save_LDFLAGS="$LDFLAGS"
+LDFLAGS="$LDFLAGS -lm"
 AC_LIB_HAVE_LINKFLAGS(ev,, [#include <ev.h>], [ev_run(0,0);])
 if test x$ac_cv_libev = xyes; then
 	AC_SUBST([LIBEV_LIBS], [$LIBEV])
@@ -119,6 +121,7 @@ else
 *** libev4 was not found.
 ***]])
 fi
+LDFLAGS="$save_LDFLAGS"
 
 AC_ARG_WITH(root-tests,
   AS_HELP_STRING([--without-root-tests], [disable any tests requiring root/docker]),
