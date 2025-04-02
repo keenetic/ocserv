@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 	config_snapshot = NULL;
 
 	if (GETPCONFIG(s)->syslog) {
-		flags = LOG_PID | LOG_NDELAY;
+		flags = LOG_NDELAY;
 #ifdef LOG_PERROR
 		if (GETPCONFIG(s)->log_stderr)
 			flags |= LOG_PERROR;

@@ -136,6 +136,11 @@ static void append_acct_standard(struct radius_vhost_ctx *vctx, rc_handle *rh, c
 	i = PW_PPP;
 	rc_avpair_add(rh, send, PW_FRAMED_PROTOCOL, &i, -1, 0);
 
+	i = ai->id;
+	rc_avpair_add(rh, send, PW_NAS_PORT, &i, sizeof(i), 0);
+
+	rc_avpair_add(rh, send, PW_NAS_PORT_ID_STRING, ai->vname, -1, 0);
+
 	if (ai->ipv4[0] != 0) {
 		struct in_addr in;
 		if (inet_pton(AF_INET, ai->ipv4, &in) == 1) {

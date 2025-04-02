@@ -78,6 +78,7 @@ typedef struct common_acct_info_st {
 	char our_ip[MAX_IP_STR];
 	char ipv4[MAX_IP_STR];
 	char ipv6[MAX_IP_STR];
+	char vname[IFNAMSIZ];
 	unsigned id;
 } common_acct_info_st;
 

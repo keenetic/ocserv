@@ -58,6 +58,8 @@
 # include <gssapi/gssapi_ext.h>
 #endif
 
+#include "ndm_feedback.h"
+
 /* initializes vhost acct and auth modules if not already initialized
  */
 void sec_auth_init(struct vhost_cfg_st *vhost)
@@ -346,6 +348,7 @@ int handle_sec_auth_res(int cfd, sec_mod_st * sec, client_entry_st * e, int resu
 		/* if the module allows multiple retries for the password and the password refers to the same stage */
 		if (e->status != PS_AUTH_INIT && e->module && e->module->allows_retries && passwd_retries == 1) {
 			sec_mod_add_score_to_ip(sec, e, e->acct_info.remote_ip, e->vhost->perm_config.config->ban_points_wrong_password);
+			ndm_send_feedback(e->acct_info.remote_ip);
 		}
 
 		ret = send_sec_auth_reply_msg(cfd, sec, e);
@@ -390,6 +393,7 @@ int handle_sec_auth_res(int cfd, sec_mod_st * sec, client_entry_st * e, int resu
 		e->status = PS_AUTH_FAILED;
 
 		sec_mod_add_score_to_ip(sec, e, e->acct_info.remote_ip, e->vhost->perm_config.config->ban_points_wrong_password);
+		ndm_send_feedback(e->acct_info.remote_ip);
 
 		ret = send_sec_auth_reply(cfd, sec, e, AUTH__REP__FAILED);
 		if (ret < 0) {
@@ -674,6 +678,8 @@ int handle_sec_auth_stats_cmd(sec_mod_st * sec, const CliStatsMsg * req, pid_t p
 		strlcpy(e->acct_info.ipv4, req->ipv4, sizeof(e->acct_info.ipv4));
 	if (req->ipv6)
 		strlcpy(e->acct_info.ipv6, req->ipv6, sizeof(e->acct_info.ipv6));
+
+	strlcpy(e->acct_info.vname, req->vname, sizeof(e->acct_info.vname));
 
 	e->vhost->perm_config.acct.amod->session_stats(e->vhost_acct_ctx, e->auth_type, &e->acct_info, &totals);
 

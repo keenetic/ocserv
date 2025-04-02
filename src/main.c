@@ -1453,7 +1453,7 @@ int main(int argc, char** argv)
 	}
 
 	if (GETPCONFIG(s)->syslog) {
-		flags = LOG_PID|LOG_NDELAY;
+		flags = LOG_NDELAY;
 #ifdef LOG_PERROR
 		if (GETPCONFIG(s)->log_stderr && GETPCONFIG(s)->syslog)
 			flags |= LOG_PERROR;

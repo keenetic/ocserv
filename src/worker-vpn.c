@@ -67,7 +67,7 @@
 
 #define MIN_MTU(ws) (((ws)->vinfo.ipv6!=NULL)?1280:800)
 
-#define PERIODIC_CHECK_TIME 30
+#define PERIODIC_CHECK_TIME 7
 #define MIN_STATS_INTERVAL 10
 
 /* The number of DPD packets a client skips before he's kicked */
@@ -87,7 +87,7 @@
 
 #define MSS_ADJUST(x) x += TCP_HEADER_SIZE + ((ws->proto == AF_INET)?(IP_HEADER_SIZE):(IPV6_HEADER_SIZE))
 
-#define WORKER_MAINTENANCE_TIME (10.)
+#define WORKER_MAINTENANCE_TIME (3.)
 
 struct worker_st *global_ws = NULL;
 
@@ -525,6 +525,7 @@ void send_stats_to_secmod(worker_st * ws, time_t now, unsigned discon_reason)
 
 		msg.ipv4 = ws->vinfo.ipv4;
 		msg.ipv6 = ws->vinfo.ipv6;
+		msg.vname = ws->vinfo.name;
 
 		ret = send_msg_to_secmod(ws, sd, CMD_SEC_CLI_STATS, &msg,
 				 (pack_size_func)cli_stats_msg__get_packed_size,
@@ -1277,7 +1278,7 @@ int periodic_check(worker_st * ws, struct timespec *tnow, unsigned dpd)
 	/* modify timers with a fuzzying factor, to prevent all worker processes
 	 * to act at exactly the same time (e.g., after a server restart on which
 	 * all clients reconnect at the same time). */
-	FUZZ(periodic_check_time, 5, tnow->tv_nsec);
+	FUZZ(periodic_check_time, 3, tnow->tv_nsec);
 
 	if (now - ws->last_periodic_check < periodic_check_time)
 		return 0;
@@ -2463,6 +2464,19 @@ static int connect_handler(worker_st * ws)
 		ret =
 		    cstp_printf(ws, "X-CSTP-Content-Encoding: %s\r\n",
 			        ws->cstp_selected_comp->name);
+		SEND_ERR(ret);
+	}
+
+	{
+		char padbuf[512];
+		const size_t padbuflen = 2 + rand() % (sizeof(padbuf) - 2);
+
+		for (size_t i = 0; i < padbuflen - 1; ++i)
+			padbuf[i] = rand() % 26 + (rand() % 2 ? 'a' : 'A');
+
+		padbuf[padbuflen - 1] = '\0';
+
+		ret = cstp_printf(ws, "X-Padding: %s\r\n", padbuf);
 		SEND_ERR(ret);
 	}
 

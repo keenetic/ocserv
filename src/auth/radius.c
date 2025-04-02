@@ -275,6 +275,7 @@ static int radius_auth_pass(void *ctx, const char *pass, unsigned pass_len)
 	char txt[64];
 	VALUE_PAIR *vp;
 	int ret;
+	uint32_t port_id = pctx->id;
 
 	/* send Access-Request */
 	oc_syslog(LOG_DEBUG, "radius-auth: communicating username (%s) and password", pctx->username);
@@ -327,7 +328,8 @@ static int radius_auth_pass(void *ctx, const char *pass, unsigned pass_len)
 		}
 	}
 
-	if (rc_avpair_add(pctx->vctx->rh, &send, PW_CALLING_STATION_ID, pctx->remote_ip, -1, 0) == NULL) {
+	if (rc_avpair_add(pctx->vctx->rh, &send, PW_CALLING_STATION_ID, pctx->remote_ip, -1, 0) == NULL ||
+	    rc_avpair_add(pctx->vctx->rh, &send, PW_NAS_PORT, &port_id, sizeof(port_id), 0) == NULL) {
 		oc_syslog(LOG_ERR,
 		       "%s:%u: error in constructing radius message for user '%s'", __func__, __LINE__,
 		       pctx->username);

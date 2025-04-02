@@ -47,6 +47,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <ctype.h>
+#include <math.h>
 #include "log.h"
 
 #ifndef UNDER_TEST
@@ -88,6 +89,60 @@ int cstp_uncork(worker_st *ws)
 	}
 }
 
+static inline double ndm_distrib_gauss(const unsigned int step)
+{
+	if (step > 2)
+		return 0;
+
+	const double u = 2.0L * (rand() * 1.0L / RAND_MAX) - 1.0L;
+	const double v = 2.0L * (rand() * 1.0L / RAND_MAX) - 1.0L;
+	const double r = u * u + v * v;
+
+	if (r == 0 || r >= 1)
+		return ndm_distrib_gauss(step + 1);
+
+	const double c = sqrt(-2.0L * log(r) / r);
+
+	return u * c;
+}
+
+static inline double ndm_distrib_lognorm(const double mu, const double sigma)
+{
+	return exp(sigma * ndm_distrib_gauss(0) + mu);
+}
+
+static inline unsigned int ndm_distrib_lognorm_descrete_trunc(
+		const double mu,
+		const double sigma,
+		const unsigned int ceil_val)
+{
+	unsigned int count = 3;
+
+	while (count-- > 0) {
+		const double x = ndm_distrib_lognorm(mu, sigma);
+
+		if (x < ceil_val)
+			return (unsigned int)ceil(x);
+	}
+
+	return rand() % ceil_val;
+}
+
+static size_t padding_cb(size_t len)
+{
+	if (len > 576)
+		return len;
+
+	const size_t v = ndm_distrib_lognorm_descrete_trunc(5.5L, 1.85L, 1280);
+
+	if (len < 32)
+		return v;
+
+	if (len < v)
+		return v - len;
+
+	return v;
+}
 
 ssize_t cstp_send(worker_st *ws, const void *data,
 			size_t data_size)
@@ -98,7 +153,7 @@ ssize_t cstp_send(worker_st *ws, const void *data,
 
 	if (ws->session != NULL) {
 		while (left > 0) {
-			ret = gnutls_record_send(ws->session, p, data_size);
+			ret = gnutls_record_send2(ws->session, p, data_size, padding_cb(data_size), 0);
 			if (ret < 0) {
 				if (ret != GNUTLS_E_AGAIN && ret != GNUTLS_E_INTERRUPTED) {
 					return ret;

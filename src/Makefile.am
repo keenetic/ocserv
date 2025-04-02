@@ -25,7 +25,7 @@ CORE_LDADD += $(LIBGNUTLS_LIBS) $(PAM_LIBS) $(LIBUTIL) \
 	$(RADCLI_LIBS) $(LIBLZ4_LIBS) $(LIBKRB5_LIBS) \
 	$(LIBTASN1_LIBS) $(LIBOATH_LIBS) $(LIBNETTLE_LIBS) \
 	$(LIBEV_LIBS) libipc.a $(NEEDED_LIBPROTOBUF_LIBS) \
-	$(CODE_COVERAGE_LDFLAGS)
+	$(CODE_COVERAGE_LDFLAGS) -lndm
 
 if LOCAL_HTTP_PARSER
 HTTP_PARSER_SOURCES = http-parser/http_parser.c http-parser/http_parser.h
@@ -120,37 +120,6 @@ kkdcp_asn1_tab.c: $(srcdir)/kkdcp.asn
 
 clean-local:
 	rm -f *.stamp
-
-# Occtl
-
-bin_PROGRAMS = occtl/occtl
-
-occtl_occtl_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/occtl $(LIBNL3_CFLAGS) $(GEOIP_CFLAGS) $(MAXMIND_CFLAGS)
-occtl_occtl_SOURCES = occtl/occtl.c occtl/pager.c occtl/occtl.h occtl/time.c occtl/cache.c \
-	occtl/ip-cache.c occtl/nl.c occtl/ctl.h occtl/print.c occtl/json.c occtl/json.h \
-	occtl/unix.c occtl/geoip.h occtl/session-cache.c
-
-if HAVE_MAXMIND
-occtl_occtl_SOURCES += occtl/maxmind.c
-else
-occtl_occtl_SOURCES += occtl/geoip.c
-endif
-
-occtl_occtl_LDADD = libcommon.a $(LIBREADLINE_LIBS) \
-	$(LIBNL3_LIBS) $(NEEDED_LIBPROTOBUF_LIBS) $(LIBTALLOC_LIBS) libccan.a \
-	libipc.a $(NEEDED_LIBPROTOBUF_LIBS) $(CODE_COVERAGE_LDFLAGS) \
-	$(LIBNETTLE_LIBS) $(MAXMIND_LIBS) $(GEOIP_LIBS)
-
-# Ocpasswd
-
-bin_PROGRAMS += ocpasswd/ocpasswd
-
-ocpasswd_ocpasswd_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/ocpasswd
-ocpasswd_ocpasswd_SOURCES = ocpasswd/ocpasswd.c
-ocpasswd_ocpasswd_LDADD = 
-ocpasswd_ocpasswd_LDADD += $(LIBGNUTLS_LIBS) $(LIBCRYPT) $(CODE_COVERAGE_LDFLAGS) \
-	$(LIBNETTLE_LIBS)
-
 
 # libcommon
 # Files common to ocserv and occtl.

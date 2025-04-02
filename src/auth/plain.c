@@ -40,6 +40,8 @@
 #endif
 #include "log.h"
 
+#include <ndm/core.h>
+
 #define MAX_CPASS_SIZE 128
 #define HOTP_WINDOW 20
 
@@ -59,16 +61,17 @@ struct plain_ctx_st {
 
 static void plain_vhost_init(void **vctx, void *pool, void *additional)
 {
+#if 0
 	struct plain_cfg_st *config = additional;
 
 	/* vctx is plain_cfg_st */
-
 	if (config == NULL) {
 		fprintf(stderr, "plain: no configuration passed!\n");
 		exit(EXIT_FAILURE);
 	}
 
 	*vctx = (void*)config;
+#endif
 
 #ifdef HAVE_LIBOATH
 	oath_init();
@@ -137,6 +140,7 @@ break_group_list(void *pool, char *text,
 
 /* Returns 0 if the user is successfully authenticated, and sets the appropriate group name.
  */
+ #if 0
 static int read_auth_pass(struct plain_ctx_st *pctx)
 {
 	FILE *fp;
@@ -221,11 +225,12 @@ static int read_auth_pass(struct plain_ctx_st *pctx)
 	fclose(fp);
 	return ret;
 }
+#endif
 
 static int plain_auth_init(void **ctx, void *pool, void *vctx, const common_auth_init_st *info)
 {
 	struct plain_ctx_st *pctx;
-	int ret;
+	//int ret;
 
 	if (info->username == NULL || info->username[0] == 0) {
 		oc_syslog(LOG_ERR,
@@ -240,16 +245,20 @@ static int plain_auth_init(void **ctx, void *pool, void *vctx, const common_auth
 	strlcpy(pctx->username, info->username, sizeof(pctx->username));
 	pctx->pass_msg = NULL; /* use default */
 	pctx->config = vctx;
+	pctx->failed = 0;
 
+#if 0
 	/* this doesn't fail on password mismatch but sets p->failed */
 	ret = read_auth_pass(pctx);
 	if (ret < 0) {
 		talloc_free(pctx);
 		return ERR_AUTH_FAIL;
 	}
+#endif
 
 	*ctx = pctx;
 
+#if 0
 	if (pctx->cpass[0] == 0 && pctx->failed == 0) {
 		/* if there is no password set, nor an OTP file; don't ask for password */
 		if (pctx->config->otp_file == NULL)
@@ -258,6 +267,7 @@ static int plain_auth_init(void **ctx, void *pool, void *vctx, const common_auth
 		/* only OTP is present */
 		pctx->pass_msg = pass_msg_otp;
 	}
+#endif
 
 	return ERR_AUTH_CONTINUE;
 }
@@ -298,11 +308,52 @@ static int plain_auth_user(void *ctx, char *username, int username_size)
 	return -1;
 }
 
+static int plain_auth_ndmreq(struct ndm_core_t *core, const char *user, const char *pass)
+{
+	bool authenticated = false;
+
+	if (!ndm_core_authenticate(core, user, pass,
+				"vpn-oc", &authenticated)) {
+			oc_syslog(LOG_NOTICE,
+			       "plain-auth: error authenticating user '%s'",
+			       user);
+
+			return ERR_AUTH_FAIL;
+	}
+
+	if (!authenticated) {
+			oc_syslog(LOG_NOTICE,
+			       "plain-auth: error authenticating user '%s'",
+			       user);
+
+			return ERR_AUTH_FAIL;
+	}
+
+	return 0;
+}
+
 /* Returns 0 if the user is successfully authenticated, and sets the appropriate group name.
  */
 static int plain_auth_pass(void *ctx, const char *pass, unsigned pass_len)
 {
 	struct plain_ctx_st *pctx = ctx;
+	struct ndm_core_t *core = ndm_core_open("ocserv/ci", 1000, NDM_CORE_DEFAULT_CACHE_MAX_SIZE);
+	int ret = ERR_AUTH_FAIL;
+
+	if (core == NULL) {
+		oc_syslog(LOG_NOTICE,
+		       "plain-auth: unable to comminucate with ndm");
+		return ERR_AUTH_FAIL;
+	}
+
+	ret = plain_auth_ndmreq(core, pctx->username, pass);
+
+	ndm_core_close(&core);
+
+	if (ret)
+		return ret;
+
+#if 0
 	const char *p;
 
 	if (pctx->cpass[0] != 0) {
@@ -331,6 +382,7 @@ static int plain_auth_pass(void *ctx, const char *pass, unsigned pass_len)
 		       pctx->username);
 		return ERR_AUTH_FAIL;
 	}
+#endif
 
 #ifdef HAVE_LIBOATH
 	if (pctx->config->otp_file != NULL) {
