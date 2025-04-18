@@ -128,7 +128,7 @@ static inline unsigned int ndm_distrib_lognorm_descrete_trunc(
 	return rand() % ceil_val;
 }
 
-static size_t padding_cb(size_t len)
+static size_t padding_cb__(const size_t len)
 {
 	if (len > 576)
 		return len;
@@ -144,6 +144,24 @@ static size_t padding_cb(size_t len)
 	return v;
 }
 
+static size_t padding_cb_(const size_t len, const size_t left)
+{
+	const size_t pad = padding_cb__(len);
+
+	return left > pad ? pad : left;
+}
+
+static size_t padding_cb(gnutls_session_t ses, const size_t len)
+{
+	const size_t max = gnutls_record_get_max_size(ses);
+	const size_t ovh = gnutls_record_overhead_size(ses);
+
+	if (max <= (ovh + len))
+		return 0;
+
+	return padding_cb_(len, max - ovh - len);
+}
+
 ssize_t cstp_send(worker_st *ws, const void *data,
 			size_t data_size)
 {
@@ -153,7 +171,7 @@ ssize_t cstp_send(worker_st *ws, const void *data,
 
 	if (ws->session != NULL) {
 		while (left > 0) {
-			ret = gnutls_record_send2(ws->session, p, data_size, padding_cb(data_size), 0);
+			ret = gnutls_record_send2(ws->session, p, data_size, padding_cb(ws->session, data_size), 0);
 			if (ret < 0) {
 				if (ret != GNUTLS_E_AGAIN && ret != GNUTLS_E_INTERRUPTED) {
 					return ret;
