@@ -162,6 +162,14 @@ static size_t padding_cb(gnutls_session_t ses, const size_t len)
 	return padding_cb_(len, max - ovh - len);
 }
 
+static int tls_send_(gnutls_session_t ses, const void *data, size_t data_size)
+{
+	if (gnutls_protocol_get_version(ses) != GNUTLS_TLS1_3)
+		return gnutls_record_send(ses, data, data_size);
+
+	return gnutls_record_send2(ses, data, data_size, padding_cb(ses, data_size), 0);
+}
+
 ssize_t cstp_send(worker_st *ws, const void *data,
 			size_t data_size)
 {
@@ -171,7 +179,7 @@ ssize_t cstp_send(worker_st *ws, const void *data,
 
 	if (ws->session != NULL) {
 		while (left > 0) {
-			ret = gnutls_record_send2(ws->session, p, data_size, padding_cb(ws->session, data_size), 0);
+			ret = tls_send_(ws->session, p, data_size);
 			if (ret < 0) {
 				if (ret != GNUTLS_E_AGAIN && ret != GNUTLS_E_INTERRUPTED) {
 					return ret;
