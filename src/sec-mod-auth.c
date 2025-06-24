@@ -348,7 +348,7 @@ int handle_sec_auth_res(int cfd, sec_mod_st * sec, client_entry_st * e, int resu
 		/* if the module allows multiple retries for the password and the password refers to the same stage */
 		if (e->status != PS_AUTH_INIT && e->module && e->module->allows_retries && passwd_retries == 1) {
 			sec_mod_add_score_to_ip(sec, e, e->acct_info.remote_ip, e->vhost->perm_config.config->ban_points_wrong_password);
-			ndm_send_feedback(e->acct_info.remote_ip);
+			ndm_send_feedback("O1", e->acct_info.remote_ip);
 		}
 
 		ret = send_sec_auth_reply_msg(cfd, sec, e);
@@ -393,7 +393,7 @@ int handle_sec_auth_res(int cfd, sec_mod_st * sec, client_entry_st * e, int resu
 		e->status = PS_AUTH_FAILED;
 
 		sec_mod_add_score_to_ip(sec, e, e->acct_info.remote_ip, e->vhost->perm_config.config->ban_points_wrong_password);
-		ndm_send_feedback(e->acct_info.remote_ip);
+		ndm_send_feedback("O2", e->acct_info.remote_ip);
 
 		ret = send_sec_auth_reply(cfd, sec, e, AUTH__REP__FAILED);
 		if (ret < 0) {
