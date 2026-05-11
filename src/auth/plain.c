@@ -312,7 +312,7 @@ static int plain_auth_ndmreq(struct ndm_core_t *core, const char *user, const ch
 {
 	bool authenticated = false;
 
-	if (!ndm_core_authenticate(core, user, pass,
+	if (!ndm_core_authenticate(core, "ocserv", user, pass,
 				"vpn-oc", &authenticated)) {
 			oc_syslog(LOG_NOTICE,
 			       "plain-auth: error authenticating user '%s'",
