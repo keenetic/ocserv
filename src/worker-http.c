@@ -680,15 +680,25 @@ void header_value_check(struct worker_st *ws, struct http_req_st *req)
 				}
 
 				nlen = BASE64_DECODE_LENGTH(tmplen);
+
+				if (nlen < sizeof(ws->sid) ||
+				    nlen > sizeof(ws->sid) + 8)
+					return;
+
+				if (sizeof(ws->buffer) < sizeof(ws->sid) + 8)
+					abort();
+
 				ret =
 				    oc_base64_decode((uint8_t*)p, tmplen,
-						  ws->sid, &nlen);
+						  ws->buffer, &nlen);
 				if (ret == 0 || nlen != sizeof(ws->sid)) {
 					oclog(ws, LOG_SENSITIVE,
 					      "could not decode sid: %.*s",
 					      tmplen, p);
 					ws->sid_set = 0;
 				} else {
+					memcpy(ws->sid, ws->buffer,
+					       sizeof(ws->sid));
 					ws->sid_set = 1;
 					oclog(ws, LOG_SENSITIVE,
 					      "received sid: %.*s", tmplen, p);
